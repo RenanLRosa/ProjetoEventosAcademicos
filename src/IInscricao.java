@@ -1,5 +1,6 @@
 public interface IInscricao {
-    boolean marcarPresenca();
+    void marcarPresenca();
+    boolean temPresenca();
     boolean solicitarCancelamento();
     void tornarConfirmado();
     int getIdInscricao();

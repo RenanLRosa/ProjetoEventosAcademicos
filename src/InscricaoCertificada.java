@@ -1,7 +1,12 @@
 public class InscricaoCertificada implements IInscricao {
+    private int id;
+
+    public InscricaoCertificada(InscricaoConfirmada inscricao){
+        this.id = inscricao.getIdInscricao();
+    }
 
     @Override
-    public boolean marcarPresenca() {
+    public void marcarPresenca() {
         // TODO Auto-generated method stub
         throw new UnsupportedOperationException("Unimplemented method 'marcarPresenca'");
     }
@@ -20,14 +25,19 @@ public class InscricaoCertificada implements IInscricao {
 
     @Override
     public int getIdInscricao() {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'getIdInscricao'");
+        return id;
     }
 
     @Override
     public IEvento getEvento() {
         // TODO Auto-generated method stub
         throw new UnsupportedOperationException("Unimplemented method 'getEvento'");
+    }
+
+    @Override
+    public boolean temPresenca() {
+        // TODO Auto-generated method stub
+        throw new UnsupportedOperationException("Unimplemented method 'temPresenca'");
     }
 
 }

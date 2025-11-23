@@ -1,10 +1,18 @@
 public class Certificado {
-    private InscricaoConfirmada inscricao;
-    public Certificado(InscricaoConfirmada inscricao){
-        this.inscricao = inscricao;
+    private IInscricao inscricao;
+    
+    public Certificado(IInscricao inscricao){
+       this.inscricao = inscricao;
      }
 
-     public InscricaoConfirmada inscricao(){
-        return inscricao;
+     public IInscricao inscricao(){
+       return inscricao;
+     }
+
+     @Override
+     public String toString() {
+         return "Certificado Válido [Participante: " + ((InscricaoConfirmada)inscricao).getParticipante().nome() + 
+                " | Evento: " + inscricao.getEvento().nome() + 
+                " | ID Inscrição: " + inscricao.getIdInscricao() + "]";
      }
 }

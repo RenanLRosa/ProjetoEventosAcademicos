@@ -2,6 +2,7 @@ public class InscricaoConfirmada implements IInscricao {
     private int id;
     private IParticipante participante;
     private IEvento evento;
+    private boolean statusPresenca=false;
 
     public InscricaoConfirmada(int id, IParticipante participante, IEvento evento) {
         this.id = id;
@@ -31,13 +32,17 @@ public class InscricaoConfirmada implements IInscricao {
     }
 
     @Override
-    public boolean marcarPresenca() { //Testa se o evento tá aberto
-        // Lógica de presença (ainda não implementada)
-        return true;
+    public void marcarPresenca() { 
+        statusPresenca = true;
     }
 
     @Override
     public IEvento getEvento() {
         return evento;
+    }
+
+    @Override
+    public boolean temPresenca() {
+        return statusPresenca;
     }
 }

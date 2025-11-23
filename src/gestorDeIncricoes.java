@@ -1,4 +1,3 @@
-// *** VERSÃO CORRIGIDA (Lógica do Switch e Cancelamento) ***
 import java.util.HashMap;
 import java.util.Map;
 
@@ -7,16 +6,13 @@ public class gestorDeIncricoes {
     private Map<Integer, IInscricao> repositorioInscricoes;
     private static int nextId = 1;
 
-    // Verificadores
     VerificadorConflitoHorario verificadorConflito = new VerificadorConflitoHorario();
     VerificadorDisponibilidade verificadorDisponibilidade = new VerificadorDisponibilidade();
 
-    // Construtor privado
     private gestorDeIncricoes(){
         this.repositorioInscricoes = new HashMap<>();
     }
 
-    // Singleton getInstance()
     public static gestorDeIncricoes getInstancia(){
         if (instancia == null){
             instancia = new gestorDeIncricoes();
@@ -24,7 +20,6 @@ public class gestorDeIncricoes {
         return instancia;
     }
 
-    // 0 = OK, 1 = Conflito, 2 = Lotado
     private int verificadorGeral(Participante aluno, EventoAberto evento){
         if(verificadorConflito.verificar(aluno, evento)){
             return 1;
@@ -35,7 +30,6 @@ public class gestorDeIncricoes {
         }
     }
 
-    // *** CORRIGIDO E COM FEEDBACK ***
     public IInscricao registarInscricao(Participante aluno, EventoAberto evento){
         int resultado = verificadorGeral(aluno, evento);
         
@@ -44,24 +38,19 @@ public class gestorDeIncricoes {
                 InscricaoConfirmada novaInscricao = new InscricaoConfirmada(nextId++, aluno, evento);
                 this.repositorioInscricoes.put(novaInscricao.getIdInscricao(), novaInscricao);
                 evento.adicionarInscricao(novaInscricao.getIdInscricao());
-                
-                System.out.println("[GESTOR-SUCESSO] Participante '" + aluno.nome() + "' inscrito (ID: " + novaInscricao.getIdInscricao() + ") no evento '" + evento.nome() + "'.");
                 return novaInscricao;
 
-            case 1: // CONFLITO DE HORÁRIO
-                System.err.println("[GESTOR-FALHA] Participante '" + aluno.nome() + "': Erro. Conflito de horário detectado.");
-                return null; // << CORREÇÃO: Adicionado 'return null' e 'break' implícito
+            case 1: // CONFLITO
+                return null; 
 
-            case 2: // EVENTO LOTADO (FILA)
+            case 2: // FILA
                 InscricaoEmFila novaInscricaoFila = new InscricaoEmFila(nextId++, aluno, evento);
                 this.repositorioInscricoes.put(novaInscricaoFila.getIdInscricao(), novaInscricaoFila);
                 evento.adicionarNaFila(novaInscricaoFila);
-                
-                System.out.println("[GESTOR-FILA] Participante '" + aluno.nome() + "': Evento cheio. Inscrição (ID: " + novaInscricaoFila.getIdInscricao() + ") na fila.");
                 return novaInscricaoFila;
 
             default:
-                throw new AssertionError("Resultado inesperado do verificador geral.");
+                throw new AssertionError("Resultado inesperado.");
         }
     }
 
@@ -69,73 +58,60 @@ public class gestorDeIncricoes {
         return this.repositorioInscricoes.get(idInscricao);
     }
 
-    private void excluirInscricao(int idInscricao){
-        // Apenas remove do repositório principal
-        repositorioInscricoes.remove(idInscricao);
-    }
-
-    // *** CORRIGIDO (LÓGICA DE PROMOÇÃO DE FILA) E COM FEEDBACK ***
-    public void cancelarInscricao(IInscricao inscricao, Participante participante){
-        System.out.println("\n[GESTOR] Processando cancelamento da Inscrição ID: " + inscricao.getIdInscricao());
+    public String cancelarInscricao(IInscricao inscricao, Participante participante){
+        StringBuilder log = new StringBuilder();
 
         if (inscricao instanceof InscricaoCancelada) {
-            System.out.println("[GESTOR-AVISO] Esta inscrição já está cancelada.");
-            return;
+            return "Erro: Esta inscrição já está cancelada.";
         }
 
         EventoAberto evento = (EventoAberto) inscricao.getEvento();
 
         // 1. Torna a inscrição atual "Cancelada"
         InscricaoCancelada novaInscricaoCancelada = new InscricaoCancelada(inscricao);
-        // Substitui a inscrição antiga pela cancelada no repositório
         this.repositorioInscricoes.put(novaInscricaoCancelada.getIdInscricao(), novaInscricaoCancelada);
+        log.append("Inscrição cancelada com sucesso.");
 
         if(inscricao instanceof InscricaoConfirmada){
-            System.out.println("[GESTOR] Cancelando uma 'Inscrição Confirmada'. Verificando fila...");
-            evento.cancelarInscricao(inscricao.getIdInscricao()); // Remove da lista de confirmados do evento
+            evento.cancelarInscricao(inscricao.getIdInscricao()); 
 
-            // 2. Lógica de Promoção: Puxa o próximo da fila
+            // 2. Lógica de Promoção da Fila
             if (evento.fila.temFila()) {
-                int idParaPromover = evento.movimentarFila(); // Puxa o ID mais antigo e remove da fila
+                int idParaPromover = evento.movimentarFila(); 
                 IInscricao inscricaoDaFila = buscarInscricaoPorId(idParaPromover);
 
-                // 3. Verifica se o item da fila é válido e o promove
                 if (inscricaoDaFila instanceof InscricaoEmFila) {
                     InscricaoEmFila inscricaoParaConfirmar = (InscricaoEmFila) inscricaoDaFila;
                     
-                    // Cria a nova inscrição confirmada substituindo a antiga
                     InscricaoConfirmada promovida = new InscricaoConfirmada(
                         inscricaoParaConfirmar.getIdInscricao(),
-                        inscricaoParaConfirmar.getParticipante(), // Usa o getter
+                        inscricaoParaConfirmar.getParticipante(),
                         inscricaoParaConfirmar.getEvento()
                     );
                     
-                    // Atualiza o repositório com a inscrição promovida
                     this.repositorioInscricoes.put(promovida.getIdInscricao(), promovida);
-                    evento.adicionarInscricao(promovida.getIdInscricao()); // Adiciona na lista de confirmados
+                    evento.adicionarInscricao(promovida.getIdInscricao());
                     
-                    System.out.println("[GESTOR-PROMOÇÃO] Vaga aberta! Inscrição ID " + promovida.getIdInscricao() + " (" + promovida.getParticipante().nome() + ") foi promovida da Fila para Confirmada.");
-                
+                    log.append("\n[SISTEMA] Vaga preenchida! " + promovida.getParticipante().nome() + " saiu da fila e foi confirmado(a).");
                 }
-            } else {
-                System.out.println("[GESTOR] Vaga aberta, mas a fila está vazia.");
             }
-
         } else if (inscricao instanceof InscricaoEmFila) {
-            // Apenas remove da fila
-            System.out.println("[GESTOR] Cancelando uma 'Inscrição em Fila'.");
             evento.removerDaFila(inscricao.getIdInscricao());
+            log.append(" (Removido da fila de espera)");
         }
+        
+        return log.toString();
     }
 
-    //Marcar presença(Pega a inscrição) 
-        //(Adicionar status na inscrição)
-    
+    public void marcarPresenca(IInscricao inscricao){
+        inscricao.marcarPresenca();
+    }
 
-    //Novo método emitircertificado(Inscrição)
-        //Testar se o aluno tem presença nessa inscrição(Adicionar status na inscrição)
-        //Se não tiver presença printar erro
-        //Se tiver presença printar - Certificado emitido
-
-
+    public Certificado emitirCertificado(IInscricao inscricao){
+        if (inscricao.temPresenca()) {
+            return new Certificado(inscricao);
+        } else{
+            return null; // Retorna null indicando que não atendeu aos critérios
+        }
+    }
 }

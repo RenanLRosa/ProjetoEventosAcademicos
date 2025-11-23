@@ -15,13 +15,8 @@ public class Sala {
         this.agenda = new AgendaSala();
     }
 
-    public String getNome() {
-        return nome;
-    }
-
-    public int getCapacidade() {
-        return capacidade;
-    }
+    public String getNome() { return nome; }
+    public int getCapacidade() { return capacidade; }
 
     public void adicionarRecurso(Recurso recurso) {
         this.recursosDaSala.add(recurso);
@@ -35,15 +30,8 @@ public class Sala {
         return this.agenda.estaDisponivel(inicio, fim);
     }
 
-    // *** ADICIONADO FEEDBACK ***
     public boolean agendarEvento(IEvento novoEvento) {
-        boolean sucesso = this.agenda.tentarAgendar(novoEvento);
-        if (sucesso) {
-            System.out.println("[SALA-SUCESSO] Evento '" + novoEvento.nome() + "' agendado na " + this.nome);
-        } else {
-            System.err.println("[SALA-FALHA] Horário indisponível para '" + novoEvento.nome() + "' na " + this.nome);
-        }
-        return sucesso;
+        return this.agenda.tentarAgendar(novoEvento);
     }
 
     @Override

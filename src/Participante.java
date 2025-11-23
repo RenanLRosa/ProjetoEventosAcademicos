@@ -1,4 +1,3 @@
-// *** VERSÃO CORRIGIDA (Bugs de Nulo e Iteração) ***
 import java.util.ArrayList;
 import java.util.List;
 
@@ -6,88 +5,114 @@ public class Participante implements IParticipante {
     private String nome;
     private String email;
     private List<IInscricao> minhasInscricoes;
+    private List<Certificado> meusCertificados;
     gestorDeIncricoes gestor = gestorDeIncricoes.getInstancia();
 
     public Participante(String nome, String email) {
         this.nome = nome;
         this.email = email;
         this.minhasInscricoes = new ArrayList<>();
+        this.meusCertificados = new ArrayList<>();
     }
 
-    // *** CORRIGIDO (Adiciona verificação de nulo) E COM FEEDBACK ***
     @Override
-    public void inscrever(EventoAberto evento) {
-        System.out.println("\n[PARTICIPANTE] " + this.nome() + " tentando se inscrever no evento: " + evento.nome());
+    public String inscrever(EventoAberto evento) {
         IInscricao novaInscricao = gestor.registarInscricao(this, evento);
         
-        // CORREÇÃO: Só adiciona na lista local se a inscrição não for nula
-        if (novaInscricao != null) {
+        if (novaInscricao == null) {
+            return "Falha na inscrição: Conflito de horário detectado.";
+        } else {
             minhasInscricoes.add(novaInscricao);
+            if (novaInscricao instanceof InscricaoEmFila) {
+                return "Evento lotado. Você entrou na FILA de espera (Posição " + evento.fila.temFila() + ").";
+            } else {
+                return "Inscrição CONFIRMADA com sucesso!";
+            }
         }
     }
 
-    // *** CORRIGIDO (Evita ConcurrentModificationException) E COM FEEDBACK ***
     @Override
-    public void cancelarInscricao(EventoAberto evento) {
-        System.out.println("\n[PARTICIPANTE] " + this.nome() + " tentando cancelar inscrição no evento: " + evento.nome());
-        
+    public String cancelarInscricao(EventoAberto evento) {
         IInscricao inscricaoParaRemover = null;
         
-        // 1. Acha a inscrição ativa (não cancelada) para este evento
         for (IInscricao inscricao : minhasInscricoes){
-            // Compara referências de evento E verifica se não é uma já cancelada
             if(inscricao.getEvento() == evento && !(inscricao instanceof InscricaoCancelada)){
                 inscricaoParaRemover = inscricao;
-                break; // Para o loop
+                break;
             }
         }
 
-        // 2. Age FORA do loop para evitar o erro
         if (inscricaoParaRemover != null) {
-            gestor.cancelarInscricao(inscricaoParaRemover, this); 
-            // 3. Atualiza a lista local (substitui pela versão cancelada)
-            // Encontra o índice da inscrição antiga
+            String log = gestor.cancelarInscricao(inscricaoParaRemover, this);
+            
+            // Atualiza referência local
             int index = minhasInscricoes.indexOf(inscricaoParaRemover);
             if (index != -1) {
-                 // Pega a nova referência (cancelada) do gestor
                 IInscricao inscricaoCancelada = gestor.buscarInscricaoPorId(inscricaoParaRemover.getIdInscricao());
                 minhasInscricoes.set(index, inscricaoCancelada);
             }
-            
-            System.out.println("[PARTICIPANTE] " + this.nome() + " processou o cancelamento.");
+            return log;
         } else {
-            System.out.println("[PARTICIPANTE] " + this.nome() + " não encontrou inscrição ativa para este evento.");
+            return "Erro: Nenhuma inscrição ativa encontrada para este evento.";
         }
     }
 
     @Override
-    public String nome() {
-        return nome;
+    public String marcarPresenca(EventoAberto evento) {
+        IInscricao inscricaoParaPresenca = null;
+
+        for (IInscricao inscricao : minhasInscricoes) {
+            if (inscricao.getEvento() == evento && inscricao instanceof InscricaoConfirmada) {
+                inscricaoParaPresenca = inscricao;
+                break;
+            }
+        }
+
+        if (inscricaoParaPresenca != null) {
+            gestor.marcarPresenca(inscricaoParaPresenca);
+            return "SUCESSO: Presença registrada no evento '" + evento.nome() + "'.";
+        } else {
+            return "ERRO: Você não possui uma inscrição confirmada ativa neste evento para marcar presença.";
+        }
     }
 
     @Override
-    public String email() {
-        return email;
-    }
+    public String requisitarCertificado(EventoAberto evento) {
+        IInscricao inscricaoParaCertificado = null;
 
-    public List<IInscricao> getInscricoes(){
-        return minhasInscricoes;
-    }
+        for (IInscricao inscricao : minhasInscricoes) {
+            if (inscricao.getEvento() == evento && !(inscricao instanceof InscricaoCancelada)) {
+                inscricaoParaCertificado = inscricao;
+                break;
+            }
+        }
 
-    public Certificado requisitarCertificado(InscricaoConfirmada){
+        if (inscricaoParaCertificado == null) {
+            return "ERRO: Nenhuma inscrição encontrada para este evento.";
+        }
+
+        for (Certificado certificado : meusCertificados) {
+            if (certificado.inscricao().getIdInscricao() == inscricaoParaCertificado.getIdInscricao()) {
+                return "INFO: Você já possui este certificado.\n   -> " + certificado.toString();
+            }
+        }
+
+        Certificado certificado = gestor.emitirCertificado(inscricaoParaCertificado);
         
+        if (certificado != null) {
+            meusCertificados.add(certificado);
+            return "SUCESSO: Certificado emitido!\n   -> " + certificado.toString();
+        } else {
+            return "NEGADO: Você não tem presença confirmada neste evento para gerar certificado.";
+        }
     }
 
+    @Override
+    public List<Certificado> getCertificados() {
+        return new ArrayList<>(this.meusCertificados);
+    }
 
-    //Adicionar método: requisitarCertificado(Evento)
-        //achar e usar o metodo que busca a inscrição pelo evento
-            /*for (IInscricao inscricao : minhasInscricoes){
-                // Compara referências de evento E verifica se não é uma já cancelada
-                if(inscricao.getEvento() == evento && !(inscricao instanceof InscricaoCancelada)){
-                    inscricaoParaCertificado = inscricao;
-                    break; // Para o loop
-                }
-            } */
+    @Override public String nome() { return nome; }
+    @Override public String email() { return email; }
+    public List<IInscricao> getInscricoes(){ return minhasInscricoes; }
 }
-        //Passar a inscriçaõ para o gestor pedindo para mandar o certificado(Resto no próprio gestor)
-        

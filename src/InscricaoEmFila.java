@@ -33,13 +33,18 @@ public class InscricaoEmFila implements IInscricao {
     }
 
     @Override
-    public boolean marcarPresenca() {
+    public void marcarPresenca() {
         System.err.println("AVISO: Não é possível marcar presença para uma inscrição em fila.");
-        return false;
     }
 
     @Override
     public IEvento getEvento() {
         return evento;
+    }
+
+    @Override
+    public boolean temPresenca() {
+        // TODO Auto-generated method stub
+        throw new UnsupportedOperationException("Unimplemented method 'temPresenca'");
     }
 }

@@ -23,13 +23,17 @@ public class InscricaoCancelada implements IInscricao {
     }
 
     @Override
-    public boolean marcarPresenca() {
+    public void marcarPresenca() {
         System.err.println("AVISO: Não é possível marcar presença em uma inscrição cancelada.");
-        return false;
     }
 
     @Override
     public IEvento getEvento() {
         return inscricaoOriginal.getEvento();
+    }
+
+    @Override
+    public boolean temPresenca() {
+        throw new UnsupportedOperationException("Unimplemented method 'temPresenca'");
     }
 }
