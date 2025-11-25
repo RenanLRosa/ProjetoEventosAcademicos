@@ -1,6 +1,8 @@
 import java.util.ArrayList;
 import java.util.List;
 
+//Usuário - Participante
+
 public class Participante implements IParticipante {
     private String nome;
     private String email;
